@@ -13,5 +13,4 @@ usage:
 Or `(require 'erc-image)` and  `M-x customize-option erc-modules RET`
 
 This plugin subscribes to hooks `erc-insert-modify-hook` and
-`erc-send-modify-hook` to download and show images. In this early
-version it's doing this synchronously.
+`erc-send-modify-hook` to download and show images.

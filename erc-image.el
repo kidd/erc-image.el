@@ -2,6 +2,7 @@
 
 ;; Copyright (C) 2012  Jon de Andrés Frías
 ;; Copyright (C) 2012  Raimon Grau Cuscó
+;; Copyright (C) 2012  David Vázquez
 
 ;; Author: Jon de Andrés Frías <jondeandres@gmail.com>
 ;; Author: Raimon Grau Cuscó <raimonster@gmail.com>
@@ -23,9 +24,6 @@
 ;;; Commentary:
 
 ;;; Show inlined images (png/jpg) in erc buffers.
-;;; usage:
-
-;;; (require 'erc-image)
 ;;;
 ;;; This plugin subscribes to hooks `erc-insert-modify-hook' and
 ;;; `erc-send-modify-hook' to download and show images. In this early
@@ -35,41 +33,48 @@
 ;;; Code:
 (require 'erc)
 
-(defun erc-image-get-url ()
-  "This function fetchs the url found at cursor point only if it
-has these extensions: png, jpg or jpeg"
-  (let* ((url (thing-at-point 'url))
-         (file-name (concat "/tmp/" (car (last (split-string url "/"))))))
-    (when (string-match "\\.png$\\|\\.jpg$\\|\\.jpeg$" url)
-      ;; alternative way is
-      ;; http://stackoverflow.com/questions/4448055/download-a-file-with-emacs-lisp
-      (url-copy-file url file-name t t)
-      (create-image file-name))))
+(defgroup erc-image nil
+  "Enable image."
+  :group 'erc)
 
-(defun erc-image-find-image ()
-  "Moves the cursor to the first match with 'http' in the buffer.
-The buffer here is just the received message in erc"
-  (beginning-of-buffer)
-  (let ((url-found (search-forward "http" nil t)))
-    (when url-found
-      (erc-image-get-url))))
+(defcustom erc-image-regex "\\.png$\\|\\.jpg$\\|\\.jpeg$"
+  "Regex to mach URLs to be downloaded"
+  :group 'erc-image
+  :type '(regexp :tag "Regex"))
 
-(defun erc-image-show-url ()
-  "Function to display an image in the erc buffer"
+(defun erc-image-show-url-image ()
   (interactive)
-  (let ((image (erc-image-find-image)))
-    (when image
-      (beginning-of-buffer)
-      (insert-image image "images")
-      (insert "\n")
-      (put-text-property (point-min) (point-max) 'read-only t))))
+  (goto-char (point-min))
+  (search-forward "http" nil t)
+  (let ((url (thing-at-point 'url))
+        (file-name))
+    (when (and url (string-match erc-image-regex url))
+      (setq file-name (concat "/tmp/" (md5 url)))
+      (goto-char (point-max))
+      (url-retrieve url
+                    (lambda  (status file-name marker)
+                      (goto-char (point-min))
+                      (search-forward "\n\n")
+                      (write-region (point) (point-max) file-name)
+                      (with-current-buffer (marker-buffer marker)
+                        (save-excursion
+                          (let ((inhibit-read-only t))
+                            (goto-char (marker-position marker))
+                            (insert-before-markers
+                             (propertize " " 'display (create-image file-name))
+                             "\n")
+                            (put-text-property (point-min) (point-max) 'read-only t)))))
+                    (list
+                     file-name
+                     (point-marker))
+                    t))))
 
 (define-erc-module image nil
   "Display inlined images in ERC buffer"
-  ((add-hook 'erc-insert-modify-hook 'erc-image-show-url t)
-   (add-hook 'erc-send-modify-hook 'erc-image-show-url t))
-  ((remove-hook 'erc-insert-modify-hook 'erc-image-show-url)
-   (remove-hook 'erc-send-modify-hook 'erc-image-show-url))
+  ((add-hook 'erc-insert-modify-hook 'erc-image-show-url-image t)
+   (add-hook 'erc-send-modify-hook 'erc-image-show-url-image t))
+  ((remove-hook 'erc-insert-modify-hook 'erc-image-show-url-image)
+   (remove-hook 'erc-send-modify-hook 'erc-image-show-url-image))
   t)
 
 (provide 'erc-image)
