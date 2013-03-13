@@ -62,8 +62,12 @@
   "Path where to store downloaded images."
   :group 'erc-image)
 
-(defvar erc-image-display-func 'erc-image-insert-inline
-  "Function to use to display the image.")
+(defcustom erc-image-display-func 'erc-image-insert-inline
+  "Function to use to display the image."
+  :group 'erc-image
+  :type '(choice (const :tag "Inline" 'erc-image-insert-inline)
+                 (const :tag "Other buffer" 'erc-image-insert-other-buffer)
+                 function))
 
 (defun erc-image-insert-other-buffer (status file-name marker)
   "Open a new buffer and display file-name image there, scaled."
