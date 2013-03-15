@@ -69,6 +69,11 @@
                  (const :tag "Other buffer" 'erc-image-insert-other-buffer)
                  function))
 
+(defcustom erc-image-inline-rescale-to-window t
+  "Rescale to window height or width (whatever is smaller)."
+  :group 'erc-image
+  :type 'boolean)
+
 (defun erc-image-insert-other-buffer (status file-name marker)
   "Open a new buffer and display file-name image there, scaled."
   (goto-char (point-min))
@@ -88,9 +93,21 @@
       (let ((inhibit-read-only t))
 	(goto-char (marker-position marker))
 	(insert-before-markers
-	 (propertize " " 'display (create-image file-name))
+	 (propertize " " 'display (erc-image-create-image file-name))
 	 "\n")
 	(put-text-property (point-min) (point-max) 'read-only t)))))
+
+(defun erc-image-create-image (file-name)
+  "Create an image suitably scaled for the current window if
+`ERC-IMAGE-INLINE-RESCALE-TO-WINDOW' is non-nil."
+  (let* ((positions (window-inside-absolute-pixel-edges))
+         (width (- (nth 2 positions) (nth 0 positions)))
+         (height (- (nth 3 positions) (nth 1 positions))))
+    (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale-to-window)
+        (if (> width height)
+            (create-image file-name 'imagemagick nil :height height)
+          (create-image file-name 'imagemagick nil :width width))
+      (create-image file-name))))
 
 ;(image-dired-display-image FILE &optional ORIGINAL-SIZE)
 
