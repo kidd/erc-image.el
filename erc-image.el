@@ -108,8 +108,7 @@ If several regex match prior occurring have higher priority."
 `ERC-IMAGE-INLINE-RESCALE-TO-WINDOW' is non-nil."
   (let* ((positions (window-inside-absolute-pixel-edges))
          (width (- (nth 2 positions) (nth 0 positions)))
-         (height (- (nth 3 positions) (nth 1 positions)))
-	 )
+         (height (- (nth 3 positions) (nth 1 positions))))
     (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale-to-window )
         (if (> width height)
             (create-image file-name 'imagemagick nil :height height)
@@ -125,13 +124,14 @@ If several regex match prior occurring have higher priority."
     (when url
       (let ((file-name (expand-file-name (md5 url) erc-image-images-path))
             (dl (erc-image-extract-image-url url)))
-        (goto-char (point-max))
-        (url-queue-retrieve dl
-                            erc-image-display-func
-                            (list
-                             file-name
-                             (point-marker))
-                            t)))))
+        (when dl
+          (goto-char (point-max))
+          (url-queue-retrieve dl
+                              erc-image-display-func
+                              (list
+                               file-name
+                               (point-marker))
+                              t))))))
 
 (defun erc-image-extract-image-url (url)
   "Extract the download url using the RE and functions in
