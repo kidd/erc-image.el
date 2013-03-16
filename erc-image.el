@@ -74,7 +74,8 @@ If several regex match prior occurring have higher priority."
                  function))
 
 (defcustom erc-image-inline-rescale-to-window nil
-  "Rescale to window height or width (whatever is smaller)."
+  "Rescale to window height or width (whatever is smaller) if the
+image is bigger than the window."
   :group 'erc-image
   :type 'boolean)
 
@@ -108,12 +109,17 @@ If several regex match prior occurring have higher priority."
 `ERC-IMAGE-INLINE-RESCALE-TO-WINDOW' is non-nil."
   (let* ((positions (window-inside-absolute-pixel-edges))
          (width (- (nth 2 positions) (nth 0 positions)))
-         (height (- (nth 3 positions) (nth 1 positions))))
-    (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale-to-window )
+         (height (- (nth 3 positions) (nth 1 positions)))
+         (image (create-image file-name))
+         (dimensions (image-size image t)))
+    (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale-to-window
+             (not (image-animated-p image))
+           (or (> (car dimensions) width)
+               (> (cdr dimensions) height)))
         (if (> width height)
             (create-image file-name 'imagemagick nil :height height)
           (create-image file-name 'imagemagick nil :width width))
-      (create-image file-name))))
+      image)))
 
 ;(image-dired-display-image FILE &optional ORIGINAL-SIZE)
 
