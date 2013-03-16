@@ -53,10 +53,14 @@
   "Enable image."
   :group 'erc)
 
-(defcustom erc-image-regex "\\.png$\\|\\.jpg$\\|\\.jpeg$"
-  "Regex to mach URLs to be downloaded."
+(defcustom erc-image-regex-alist '(("imgur\\.com" . erc-image-get-imgur-url)
+                                   ("\\.\\(png\\|jpg\\|jpeg\\)$" . identity))
+  "Pairs of regex and function to match URLs to be downloaded.
+The function needs to have one argument to which the url will be
+supplied and it should return the real URL to download an image.
+If several regex match prior occurring have higher priority."
   :group 'erc-image
-  :type '(regexp :tag "Regex"))
+  :type '(alist :key-type string :value-type function))
 
 (defcustom erc-image-images-path temporary-file-directory
   "Path where to store downloaded images."
@@ -114,18 +118,33 @@
 (defun erc-image-show-url-image ()
   (goto-char (point-min))
   (search-forward "http" nil t)
-  (let ((url (thing-at-point 'url))
-        (file-name))
-    (when (and url (string-match erc-image-regex url))
-      (setq file-name (expand-file-name
-		       (concat erc-image-images-path "/" (md5 url))))
-      (goto-char (point-max))
-      (url-queue-retrieve url
-			  erc-image-display-func
-                    (list
-                     file-name
-                     (point-marker))
-                    t))))
+  (let ((url (thing-at-point 'url)))
+    (when url
+      (let ((file-name (expand-file-name (md5 url) erc-image-images-path))
+            (dl (erc-image-extract-image-url url)))
+        (goto-char (point-max))
+        (url-queue-retrieve dl
+                            erc-image-display-func
+                            (list
+                             file-name
+                             (point-marker))
+                            t)))))
+
+(defun erc-image-extract-image-url (url)
+  "Extract the download url using the RE and functions in
+`erc-image-regex-alist'."
+  (catch 'download-url
+    (dolist (pair erc-image-regex-alist)
+      (let ((re (car pair))
+            (f (cdr pair)))
+        (when (string-match-p re url)
+          (throw 'download-url (funcall f url)))))))
+
+(defun erc-image-get-imgur-url (url)
+  "Return the download URL for the imgur `url'."
+  (let ((id (progn (string-match "/\\([^/]*?\\)$" url)
+                   (match-string 1 url))))
+     (format "http://imgur.com/download/%s" id)))
 
 ;;;###autoload
 (eval-after-load 'erc
