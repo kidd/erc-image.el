@@ -59,6 +59,8 @@
 				    erc-image-get-memecaptain-url)
 				   ("http://\\(www\\.\\)?memecrunch\\.com/meme/[^.]*$" .
 				    erc-image-get-memecrunch-url)
+				   ("http://\\(www\\.\\)?quickmeme.com/meme/[^.]*$" .
+				    erc-image-get-quickmeme-url)
                                    ("\\.\\(png\\|jpg\\|jpeg\\|gif\\|svg\\)$" . identity))
   "Pairs of regex and function to match URLs to be downloaded.
 The function needs to have one argument to which the url will be
@@ -162,7 +164,7 @@ image is bigger than the window."
 
 (defun erc-image-get-memecrunch-url (url)
   "Return the download URL for the memecrunch `url'."
-  (let ((id (progn (string-match "http://memecrunch.com/meme/\\(.*?\\)$" url)
+  (let ((id (progn (string-match "memecrunch.com/meme/\\(.*?\\)$" url)
                    (match-string 1 url))))
      (format "http://memecrunch.com/meme/%s/image.png" id)))
 
@@ -172,6 +174,11 @@ image is bigger than the window."
                    (match-string 1 url))))
      (format "http://memecaptain.com/gend_images/%s" id)))
 
+(defun erc-image-get-quickmeme-url (url)
+  "Return the download URL for the quickmeme `url'."
+  (let ((id (progn (string-match "quickmeme.com/meme/\\(.*?\\)/*$" url)
+                   (match-string 1 url))))
+     (format "http://i.qkme.me/%s.jpg" id)))
 
 ;;;###autoload
 (eval-after-load 'erc
