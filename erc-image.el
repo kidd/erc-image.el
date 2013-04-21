@@ -80,11 +80,16 @@ If several regex match prior occurring have higher priority."
                  (const :tag "Other buffer" 'erc-image-insert-other-buffer)
                  function))
 
-(defcustom erc-image-inline-rescale-to-window t
-  "Rescale to window height or width (whatever is smaller) if the
-image is bigger than the window."
+(defcustom erc-image-inline-rescale nil
+  "Rescale the inline displayed image if non-nil. If the value is 'window, scale the
+  image down to the window size if it is bigger. When entering a
+  numeric value, the image will be scaled to that size."
   :group 'erc-image
-  :type 'boolean)
+  :type '(choice
+	  (const :tag "No scaling" nil)
+	  (const :tag "Scale down to window-size" window)
+	  (integer :tag "Scale down to specific value")
+	  ))
 
 (defun erc-image-insert-other-buffer (status file-name marker)
   "Open a new buffer and display file-name image there, scaled."
@@ -112,20 +117,33 @@ image is bigger than the window."
 	(put-text-property (point-min) (point-max) 'read-only t)))))
 
 (defun erc-image-create-image (file-name)
-  "Create an image suitably scaled for the current window if
-`ERC-IMAGE-INLINE-RESCALE-TO-WINDOW' is non-nil."
+  "Create an image suitably scaled according to the setting of
+'ERC-IMAGE-RESCALE."
   (let* ((positions (window-inside-absolute-pixel-edges))
          (width (- (nth 2 positions) (nth 0 positions)))
          (height (- (nth 3 positions) (nth 1 positions)))
          (image (create-image file-name))
          (dimensions (image-size image t)))
-    (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale-to-window
-             (not (image-animated-p image))
-           (or (> (car dimensions) width)
-               (> (cdr dimensions) height)))
-        (if (> width height)
-            (create-image file-name 'imagemagick nil :height height)
-          (create-image file-name 'imagemagick nil :width width))
+    ; See if we want to rescale the image
+    (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale
+	     (not (image-animated-p image)))
+	;; Rescale based on erc-image-rescale
+	(cond (;; Numeric: scale down to that size
+	       (numberp erc-image-inline-rescale)
+	       (create-image file-name 'imagemagick nil :height erc-image-inline-rescale))
+	      (;; 'window: scale down to window size, if bigger
+	       (eq erc-image-inline-rescale 'window)
+	       ;; But only if the image is greater than the window size
+	       (if (or (> (car dimensions) width)
+		       (> (cdr dimensions) height))
+		   ;; Figure out in which direction we need to scale
+		   (if (> width height)
+		       (create-image file-name 'imagemagick nil :height  height)
+		     (create-image file-name 'imagemagick nil :width width))
+		 ;; Image is smaller than window, just give that back
+		 image))
+	      (t (progn (message "Error: none of the rescaling options matched") image)))
+      ;; No rescale
       image)))
 
 ;(image-dired-display-image FILE &optional ORIGINAL-SIZE)
