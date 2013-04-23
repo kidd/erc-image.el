@@ -22,3 +22,4 @@ This plugin subscribes to hooks `erc-insert-modify-hook` and
 * [David Vazquez](https://github.com/davazp)
 * [Jon de Andres](https://github.com/jondeandres)
 * [Michael Markert](https://github.com/cofi)
+* [John Pirie](https://github.com/jpirie)
