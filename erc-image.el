@@ -57,14 +57,17 @@
   "Enable image."
   :group 'erc)
 
-(defcustom erc-image-regex-alist '(("http://\\(www\\.\\)?imgur\\.com" . erc-image-get-imgur-url)
-				   ("http://\\(www\\.\\)?memecaptain\\.com/gend_image_pages/" .
-				    erc-image-get-memecaptain-url)
-				   ("http://\\(www\\.\\)?memecrunch\\.com/meme/[^.]*$" .
-				    erc-image-get-memecrunch-url)
-				   ("http://\\(www\\.\\)?quickmeme.com/meme/[^.]*$" .
-				    erc-image-get-quickmeme-url)
-                                   ("\\.\\(png\\|jpg\\|jpeg\\|gif\\|svg\\)$" . identity))
+(defcustom erc-image-regex-alist
+	'(("http://\\(www\\.\\)?imgur\\.com" .
+		 erc-image-get-imgur-url)
+		("http://\\(www\\.\\)?memecaptain\\.com/gend_image_pages/" .
+		 erc-image-get-memecaptain-url)
+		("http://\\(www\\.\\)?memecrunch\\.com/meme/[^.]*$" .
+		 erc-image-get-memecrunch-url)
+		("http://\\(www\\.\\)?quickmeme.com/meme/[^.]*$" .
+		 erc-image-get-quickmeme-url)
+		("\\.\\(png\\|jpg\\|jpeg\\|gif\\|svg\\)$" .
+		 erc-image-show-url-image))
   "Pairs of regex and function to match URLs to be downloaded.
 The function needs to have one argument to which the url will be
 supplied and it should return the real URL to download an image.
@@ -151,64 +154,62 @@ If several regex match prior occurring have higher priority."
 
 ;(image-dired-display-image FILE &optional ORIGINAL-SIZE)
 
-(defun erc-image-show-url-image ()
-  (goto-char (point-min))
-  (search-forward "http" nil t)
-  (let ((url (thing-at-point 'url)))
-    (when url
-      (let ((file-name (expand-file-name (md5 url) erc-image-images-path))
-            (dl (erc-image-extract-image-url url)))
-        (when dl
-          (goto-char (point-max))
-          (url-queue-retrieve dl
-                              erc-image-display-func
-                              (list
-                               file-name
-                               (point-marker))
-                              t))))))
+(defun erc-image-show-url-image (url)
+	(when url
+		(let ((file-name (expand-file-name (md5 url) erc-image-images-path)))
+			(goto-char (point-max))
+			(url-queue-retrieve url
+													erc-image-display-func
+													(list
+													 file-name
+													 (point-marker))
+													t))))
 
-(defun erc-image-extract-image-url (url)
-  "Extract the download url using the RE and functions in
-`erc-image-regex-alist'."
-  (catch 'download-url
-    (dolist (pair erc-image-regex-alist)
-      (let ((re (car pair))
-            (f (cdr pair)))
-        (when (string-match-p re url)
-          (throw 'download-url (funcall f url)))))))
+(defun erc-image-show-url ()
+	"Calls the proper function to process an URL"
+	(goto-char (point-min))
+	(search-forward "http" nil t)
+	(let ((url (thing-at-point 'url)))
+		(when url
+			(catch 'download-url
+				(dolist (pair erc-image-regex-alist)
+					(let ((re (car pair))
+								(f (cdr pair)))
+						(when (string-match-p re url)
+							(throw 'download-url (funcall f url)))))))))
 
 (defun erc-image-get-imgur-url (url)
   "Return the download URL for the imgur `url'."
   (let ((id (progn (string-match "/\\([^/]*?\\)$" url)
                    (match-string 1 url))))
-     (format "http://imgur.com/download/%s" id)))
+		(erc-image-show-url-image (format "http://imgur.com/download/%s" id))))
 
 (defun erc-image-get-memecrunch-url (url)
   "Return the download URL for the memecrunch `url'."
   (let ((id (progn (string-match "memecrunch.com/meme/\\(.*?\\)$" url)
                    (match-string 1 url))))
-     (format "http://memecrunch.com/meme/%s/image.png" id)))
+		(erc-image-show-url-image (format "http://memecrunch.com/meme/%s/image.png" id))))
 
 (defun erc-image-get-memecaptain-url (url)
   "Return the download URL for the memecaptain `url'."
   (let ((id (progn (string-match "/\\([^/]*?\\)$" url)
                    (match-string 1 url))))
-     (format "http://memecaptain.com/gend_images/%s" id)))
+		(erc-image-show-url-image (format "http://memecaptain.com/gend_images/%s" id))))
 
 (defun erc-image-get-quickmeme-url (url)
   "Return the download URL for the quickmeme `url'."
   (let ((id (progn (string-match "quickmeme.com/meme/\\(.*?\\)/*$" url)
                    (match-string 1 url))))
-     (format "http://i.qkme.me/%s.jpg" id)))
+		(erc-image-show-url-image (format "http://i.qkme.me/%s.jpg" id))))
 
 ;;;###autoload
 (eval-after-load 'erc
   '(define-erc-module image nil
      "Display inlined images in ERC buffer"
-     ((add-hook 'erc-insert-modify-hook 'erc-image-show-url-image t)
-      (add-hook 'erc-send-modify-hook 'erc-image-show-url-image t))
-     ((remove-hook 'erc-insert-modify-hook 'erc-image-show-url-image)
-      (remove-hook 'erc-send-modify-hook 'erc-image-show-url-image))
+     ((add-hook 'erc-insert-modify-hook 'erc-image-show-url t)
+      (add-hook 'erc-send-modify-hook 'erc-image-show-url t))
+     ((remove-hook 'erc-insert-modify-hook 'erc-image-show-url)
+      (remove-hook 'erc-send-modify-hook 'erc-image-show-url))
      t))
 
 (eval-when-compile
