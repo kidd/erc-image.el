@@ -101,7 +101,8 @@ If several regex match prior occurring have higher priority."
   "Open a new buffer and display file-name image there, scaled."
   (goto-char (point-min))
   (search-forward "\n\n")
-  (write-region (point) (point-max) file-name)
+  (let ((coding-system-for-write 'binary))
+    (write-region (point) (point-max) file-name))
   (image-dired-create-display-image-buffer)
   (display-buffer image-dired-display-image-buffer)
   (image-dired-display-image file-name))
@@ -110,7 +111,8 @@ If several regex match prior occurring have higher priority."
   "Open file-name image in the marker position."
   (goto-char (point-min))
   (search-forward "\n\n")
-  (write-region (point) (point-max) file-name)
+  (let ((coding-system-for-write 'binary))
+    (write-region (point) (point-max) file-name))
   (with-current-buffer (marker-buffer marker)
     (save-excursion
       (let ((inhibit-read-only t)
