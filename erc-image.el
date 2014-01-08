@@ -3,6 +3,7 @@
 ;; Copyright (C) 2012  Jon de Andrés Frías
 ;; Copyright (C) 2012  Raimon Grau Cuscó
 ;; Copyright (C) 2012  David Vázquez
+;; Copyright (C) 2013  John Pirie
 
 ;; Author: Jon de Andrés Frías <jondeandres@gmail.com>
 ;;         Raimon Grau Cuscó <raimonster@gmail.com>
@@ -75,6 +76,18 @@ If several regex match prior occurring have higher priority."
   :group 'erc-image
   :type '(alist :key-type string :value-type function))
 
+(defcustom erc-image-resize-animated-gifs t
+  "If this option is set to true, will rescale animated gifs (the
+  'convert' tool from imagemagick must be installed for this to
+  work)."
+  :group 'erc-image
+  :type 'boolean)
+
+(defcustom erc-image-gif-animation-length 120
+  "Number of seconds gif should display their animationfor."
+  :group 'erc-image
+  :type 'integer)
+
 (defcustom erc-image-images-path temporary-file-directory
   "Path where to store downloaded images."
   :group 'erc-image)
@@ -96,6 +109,17 @@ If several regex match prior occurring have higher priority."
 	  (const :tag "Scale down to window-size" window)
 	  (integer :tag "Scale down to specific value")
 	  ))
+
+(defun resize-gif (image file-name size)
+  "Resizes an animated gif. Note that this makes an external call
+  to the convert program, not once but twice. This has to be done
+  in the right way or the gif can actually blow up emacs
+  spectacularly."
+  (let ((tmpFile (make-temp-file "erc-image")))
+    (message "Resizing animated gif.... ")
+    (shell-command (concat "convert " file-name " -coalesce " tmpFile "; convert " tmpFile " -resize " size"x"size " " tmpFile "-scaled"))
+    (create-image (concat tmpFile "-scaled")))
+  )
 
 (defun erc-image-insert-other-buffer (status file-name marker)
   "Open a new buffer and display file-name image there, scaled."
@@ -121,7 +145,7 @@ If several regex match prior occurring have higher priority."
 	(insert-before-markers
 	 (propertize " " 'display im)
 	 "\n")
-	(when (image-animated-p im) (image-animate im 0 t))
+	(when (image-animated-p im) (image-animate im 0 erc-image-gif-animation-length))
 	(put-text-property (point-min) (point-max) 'read-only t)))))
 
 (defun erc-image-create-image (file-name)
@@ -133,12 +157,21 @@ If several regex match prior occurring have higher priority."
          (image (create-image file-name))
          (dimensions (image-size image t)))
     ; See if we want to rescale the image
-    (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale
-	     (not (image-animated-p image)))
+    (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale)
 	;; Rescale based on erc-image-rescale
 	(cond (;; Numeric: scale down to that size
 	       (numberp erc-image-inline-rescale)
-	       (create-image file-name 'imagemagick nil :height erc-image-inline-rescale))
+	       ; if it's not animated
+	       (if (not (image-animated-p image))
+		   ; then rescale the image to the right value
+		   (create-image file-name 'imagemagick nil :height erc-image-inline-rescale)
+		 ; if it's an animated gif and the user wants gifs resized
+		 (if (and (image-animated-p image) erc-image-resize-animated-gifs)
+		     ; resize the gif
+		     (resize-gif image file-name (format "%d" erc-image-inline-rescale))
+		   ; the user does not wish to resize gifs, just return the image
+		   image)))
+
 	      (;; 'window: scale down to window size, if bigger
 	       (eq erc-image-inline-rescale 'window)
 	       ;; But only if the image is greater than the window size
@@ -146,8 +179,16 @@ If several regex match prior occurring have higher priority."
 		       (> (cdr dimensions) height))
 		   ;; Figure out in which direction we need to scale
 		   (if (> width height)
-		       (create-image file-name 'imagemagick nil :height  height)
-		     (create-image file-name 'imagemagick nil :width width))
+		       (if (not (image-animated-p image))
+			   (create-image file-name 'imagemagick nil :height height)
+			 (if (and (image-animated-p image) erc-image-resize-animated-gifs)
+			     (resize-gif image file-name (format "%d" height))
+			   image))
+		     (if (not (image-animated-p image))
+			 (create-image file-name 'imagemagick nil :width width)
+		       (if (and (image-animated-p image) erc-image-resize-animated-gifs)
+			   (resize-gif image file-name (format "%d" width))
+			 image)))
 		 ;; Image is smaller than window, just give that back
 		 image))
 	      (t (progn (message "Error: none of the rescaling options matched") image)))
