@@ -94,8 +94,11 @@ If several regex match prior occurring have higher priority."
   :type '(choice
 	  (const :tag "No scaling" nil)
 	  (const :tag "Scale down to window-size" window)
-	  (integer :tag "Scale down to specific value")
-	  ))
+	  (integer :tag "Scale down to specific value")))
+
+
+(when (version< emacs-version "24.4")
+  (fset 'image-multi-frame-p 'image-animated-p))
 
 (defun erc-image-insert-other-buffer (status file-name marker)
   "Open a new buffer and display file-name image there, scaled."
@@ -121,7 +124,7 @@ If several regex match prior occurring have higher priority."
 	(insert-before-markers
 	 (propertize " " 'display im)
 	 "\n")
-	(when (image-animated-p im) (image-animate im 0 t))
+	(when (image-multi-frame-p im) (image-animate im 0 t))
 	(put-text-property (point-min) (point-max) 'read-only t)))))
 
 (defun erc-image-create-image (file-name)
@@ -134,7 +137,7 @@ If several regex match prior occurring have higher priority."
          (dimensions (image-size image t)))
     ; See if we want to rescale the image
     (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale
-	     (not (image-animated-p image)))
+	     (not (image-multi-frame-p image)))
 	;; Rescale based on erc-image-rescale
 	(cond (;; Numeric: scale down to that size
 	       (numberp erc-image-inline-rescale)
@@ -214,9 +217,5 @@ If several regex match prior occurring have higher priority."
       (remove-hook 'erc-send-modify-hook 'erc-image-show-url))
      t))
 
-(eval-when-compile
-  (message "Incompatible change: check the value of
-  erc-image-inline-rescale if you had set
-  erc-image-inline-rescale-to-window"))
 (provide 'erc-image)
 ;;; erc-image.el ends here
