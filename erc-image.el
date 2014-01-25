@@ -217,9 +217,5 @@ If several regex match prior occurring have higher priority."
       (remove-hook 'erc-send-modify-hook 'erc-image-show-url))
      t))
 
-(eval-when-compile
-  (message "Incompatible change: check the value of
-  erc-image-inline-rescale if you had set
-  erc-image-inline-rescale-to-window"))
 (provide 'erc-image)
 ;;; erc-image.el ends here
