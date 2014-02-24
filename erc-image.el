@@ -121,11 +121,12 @@ If several regex match prior occurring have higher priority."
       (let ((inhibit-read-only t)
 	    (im (erc-image-create-image file-name)))
 	(goto-char (marker-position marker))
-	(insert-before-markers
-	 (propertize " " 'display im)
-	 "\n")
-	(when (image-multi-frame-p im) (image-animate im 0 t))
-	(put-text-property (point-min) (point-max) 'read-only t)))))
+	(let ((pt-before (point)))
+    (insert-before-markers
+     (propertize " " 'display im)
+     "\n")
+    (when (image-multi-frame-p im) (image-animate im 0 t))
+    (put-text-property pt-before (point) 'read-only t))))))
 
 (defun erc-image-create-image (file-name)
   "Create an image suitably scaled according to the setting of
