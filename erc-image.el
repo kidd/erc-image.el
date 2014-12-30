@@ -7,7 +7,6 @@
 ;; Author: Jon de Andrés Frías <jondeandres@gmail.com>
 ;;         Raimon Grau Cuscó <raimonster@gmail.com>
 ;; Version: 0.9
-;; Package-Requires: ((erc "5.3"))
 ;; Keywords: multimedia
 
 ;; This program is free software; you can redistribute it and/or modify
