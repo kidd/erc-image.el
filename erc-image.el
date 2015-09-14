@@ -57,16 +57,16 @@
   :group 'erc)
 
 (defcustom erc-image-regex-alist
-	'(("http://\\(www\\.\\)?imgur\\.com" .
-		 erc-image-get-imgur-url)
-		("http://\\(www\\.\\)?memecaptain\\.com/gend_image_pages/" .
-		 erc-image-get-memecaptain-url)
-		("http://\\(www\\.\\)?memecrunch\\.com/meme/[^.]*$" .
-		 erc-image-get-memecrunch-url)
-		("http://\\(www\\.\\)?quickmeme.com/meme/[^.]*$" .
-		 erc-image-get-quickmeme-url)
-		("\\.\\(png\\|jpg\\|jpeg\\|gif\\|svg\\)$" .
-		 erc-image-show-url-image))
+  '(("http://\\(www\\.\\)?imgur\\.com" .
+     erc-image-get-imgur-url)
+    ("http://\\(www\\.\\)?memecaptain\\.com/gend_image_pages/" .
+     erc-image-get-memecaptain-url)
+    ("http://\\(www\\.\\)?memecrunch\\.com/meme/[^.]*$" .
+     erc-image-get-memecrunch-url)
+    ("http://\\(www\\.\\)?quickmeme.com/meme/[^.]*$" .
+     erc-image-get-quickmeme-url)
+    ("\\.\\(png\\|jpg\\|jpeg\\|gif\\|svg\\)$" .
+     erc-image-show-url-image))
   "Pairs of regex and function to match URLs to be downloaded.
 The function needs to have one argument to which the url will be
 supplied and it should return the real URL to download an image.
@@ -91,9 +91,9 @@ If several regex match prior occurring have higher priority."
   numeric value, the image will be scaled to that size."
   :group 'erc-image
   :type '(choice
-	  (const :tag "No scaling" nil)
-	  (const :tag "Scale down to window-size" window)
-	  (integer :tag "Scale down to specific value")))
+          (const :tag "No scaling" nil)
+          (const :tag "Scale down to window-size" window)
+          (integer :tag "Scale down to specific value")))
 
 
 (when (version< emacs-version "24.4")
@@ -118,14 +118,14 @@ If several regex match prior occurring have higher priority."
   (with-current-buffer (marker-buffer marker)
     (save-excursion
       (let ((inhibit-read-only t)
-	    (im (erc-image-create-image file-name)))
-	(goto-char (marker-position marker))
-	(let ((pt-before (point)))
-    (insert-before-markers
-     (propertize " " 'display im)
-     "\n")
-    (when (image-multi-frame-p im) (image-animate im 0 t))
-    (put-text-property pt-before (point) 'read-only t))))))
+            (im (erc-image-create-image file-name)))
+        (goto-char (marker-position marker))
+        (let ((pt-before (point)))
+          (insert-before-markers
+           (propertize " " 'display im)
+           "\n")
+          (when (image-multi-frame-p im) (image-animate im 0 t))
+          (put-text-property pt-before (point) 'read-only t))))))
 
 (defun erc-image-create-image (file-name)
   "Create an image suitably scaled according to the setting of
@@ -135,77 +135,77 @@ If several regex match prior occurring have higher priority."
          (height (- (nth 3 positions) (nth 1 positions)))
          (image (create-image file-name))
          (dimensions (image-size image t)))
-    ; See if we want to rescale the image
+                                        ; See if we want to rescale the image
     (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale
-	     (not (image-multi-frame-p image)))
-	;; Rescale based on erc-image-rescale
-	(cond (;; Numeric: scale down to that size
-	       (numberp erc-image-inline-rescale)
-	       (create-image file-name 'imagemagick nil :height erc-image-inline-rescale))
-	      (;; 'window: scale down to window size, if bigger
-	       (eq erc-image-inline-rescale 'window)
-	       ;; But only if the image is greater than the window size
-	       (if (or (> (car dimensions) width)
-		       (> (cdr dimensions) height))
-		   ;; Figure out in which direction we need to scale
-		   (if (> width height)
-		       (create-image file-name 'imagemagick nil :height  height)
-		     (create-image file-name 'imagemagick nil :width width))
-		 ;; Image is smaller than window, just give that back
-		 image))
-	      (t (progn (message "Error: none of the rescaling options matched") image)))
+             (not (image-multi-frame-p image)))
+        ;; Rescale based on erc-image-rescale
+        (cond (;; Numeric: scale down to that size
+               (numberp erc-image-inline-rescale)
+               (create-image file-name 'imagemagick nil :height erc-image-inline-rescale))
+              (;; 'window: scale down to window size, if bigger
+               (eq erc-image-inline-rescale 'window)
+               ;; But only if the image is greater than the window size
+               (if (or (> (car dimensions) width)
+                       (> (cdr dimensions) height))
+                   ;; Figure out in which direction we need to scale
+                   (if (> width height)
+                       (create-image file-name 'imagemagick nil :height  height)
+                     (create-image file-name 'imagemagick nil :width width))
+                 ;; Image is smaller than window, just give that back
+                 image))
+              (t (progn (message "Error: none of the rescaling options matched") image)))
       ;; No rescale
       image)))
 
-;(image-dired-display-image FILE &optional ORIGINAL-SIZE)
+                                        ;(image-dired-display-image FILE &optional ORIGINAL-SIZE)
 
 (defun erc-image-show-url-image (url)
-	(when url
-		(let ((file-name (expand-file-name (md5 url) erc-image-images-path)))
-			(goto-char (point-max))
-			(url-queue-retrieve url
-													erc-image-display-func
-													(list
-													 file-name
-													 (point-marker))
-													t))))
+  (when url
+    (let ((file-name (expand-file-name (md5 url) erc-image-images-path)))
+      (goto-char (point-max))
+      (url-queue-retrieve url
+                          erc-image-display-func
+                          (list
+                           file-name
+                           (point-marker))
+                          t))))
 
 (defun erc-image-show-url ()
-	"Calls the proper function to process an URL"
-	(goto-char (point-min))
-	(search-forward "http" nil t)
-	(let ((url (thing-at-point 'url)))
-		(when url
-			(catch 'download-url
-				(dolist (pair erc-image-regex-alist)
-					(let ((re (car pair))
-								(f (cdr pair)))
-						(when (string-match-p re url)
-							(throw 'download-url (funcall f url)))))))))
+  "Calls the proper function to process an URL"
+  (goto-char (point-min))
+  (search-forward "http" nil t)
+  (let ((url (thing-at-point 'url)))
+    (when url
+      (catch 'download-url
+        (dolist (pair erc-image-regex-alist)
+          (let ((re (car pair))
+                (f (cdr pair)))
+            (when (string-match-p re url)
+              (throw 'download-url (funcall f url)))))))))
 
 (defun erc-image-get-imgur-url (url)
   "Return the download URL for the imgur `url'."
   (let ((id (progn (string-match "/\\([^/]*?\\)$" url)
                    (match-string 1 url))))
-		(erc-image-show-url-image (format "http://imgur.com/download/%s" id))))
+    (erc-image-show-url-image (format "http://imgur.com/download/%s" id))))
 
 (defun erc-image-get-memecrunch-url (url)
   "Return the download URL for the memecrunch `url'."
   (let ((id (progn (string-match "memecrunch.com/meme/\\(.*?\\)$" url)
                    (match-string 1 url))))
-		(erc-image-show-url-image (format "http://memecrunch.com/meme/%s/image.png" id))))
+    (erc-image-show-url-image (format "http://memecrunch.com/meme/%s/image.png" id))))
 
 (defun erc-image-get-memecaptain-url (url)
   "Return the download URL for the memecaptain `url'."
   (let ((id (progn (string-match "/\\([^/]*?\\)$" url)
                    (match-string 1 url))))
-		(erc-image-show-url-image (format "http://memecaptain.com/gend_images/%s" id))))
+    (erc-image-show-url-image (format "http://memecaptain.com/gend_images/%s" id))))
 
 (defun erc-image-get-quickmeme-url (url)
   "Return the download URL for the quickmeme `url'."
   (let ((id (progn (string-match "quickmeme.com/meme/\\(.*?\\)/*$" url)
                    (match-string 1 url))))
-		(erc-image-show-url-image (format "http://i.qkme.me/%s.jpg" id))))
+    (erc-image-show-url-image (format "http://i.qkme.me/%s.jpg" id))))
 
 ;;;###autoload
 (eval-after-load 'erc
