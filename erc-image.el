@@ -160,7 +160,7 @@ If several regex match prior occurring have higher priority."
                                         ;(image-dired-display-image FILE &optional ORIGINAL-SIZE)
 
 (defun erc-image-show-url-image (url)
-  (when url
+  (when (and url window-system)
     (let ((file-name (expand-file-name (md5 url) erc-image-images-path)))
       (goto-char (point-max))
       (url-queue-retrieve url
