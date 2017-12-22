@@ -95,31 +95,40 @@ If several regex match prior occurring have higher priority."
 
 (defun erc-image-insert-other-buffer (status file-name marker)
   "Open a new buffer and display file-name image there, scaled."
-  (goto-char (point-min))
-  (search-forward "\n\n")
-  (let ((coding-system-for-write 'binary))
-    (write-region (point) (point-max) file-name))
-  (image-dired-create-display-image-buffer)
-  (display-buffer image-dired-display-image-buffer)
-  (image-dired-display-image file-name))
+  (if (equal (car status) :error)
+      (message "%s" (error-message-string (cadr status)))
+    (goto-char (point-min))
+    (search-forward "\n\n")
+    (let ((coding-system-for-write 'binary))
+      (write-region (point) (point-max) file-name))
+    (image-dired-create-display-image-buffer)
+    (display-buffer image-dired-display-image-buffer)
+    (image-dired-display-image file-name)))
 
 (defun erc-image-insert-inline (status file-name marker)
   "Open file-name image in the marker position."
-  (goto-char (point-min))
-  (search-forward "\n\n")
-  (let ((coding-system-for-write 'binary))
-    (write-region (point) (point-max) file-name))
-  (with-current-buffer (marker-buffer marker)
-    (save-excursion
-      (let ((inhibit-read-only t)
-            (im (erc-image-create-image file-name)))
-        (goto-char (marker-position marker))
-        (let ((pt-before (point)))
-          (insert-before-markers
-           (propertize " " 'display im)
-           "\n")
-          (when (image-multi-frame-p im) (image-animate im 0 t))
-          (put-text-property pt-before (point) 'read-only t))))))
+  (if (equal (car status) :error)
+      (with-current-buffer (marker-buffer marker)
+        (save-excursion
+          (let ((inhibit-read-only t))
+            (goto-char (marker-position marker))
+            (insert-before-markers
+             (format "%s\n" (error-message-string (cadr status)))))))
+    (goto-char (point-min))
+    (search-forward "\n\n")
+    (let ((coding-system-for-write 'binary))
+      (write-region (point) (point-max) file-name))
+    (with-current-buffer (marker-buffer marker)
+      (save-excursion
+        (let ((inhibit-read-only t)
+               (im (erc-image-create-image file-name)))
+          (goto-char (marker-position marker))
+          (let ((pt-before (point)))
+            (insert-before-markers
+             (propertize " " 'display im)
+             "\n")
+            (when (image-multi-frame-p im) (image-animate im 0 t))
+            (put-text-property pt-before (point) 'read-only t)))))))
 
 (defun erc-image-create-image (file-name)
   "Create an image suitably scaled according to the setting of
