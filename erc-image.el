@@ -113,6 +113,7 @@ If several regex match prior occurring have higher priority."
           (let ((inhibit-read-only t))
             (goto-char (marker-position marker))
             (insert-before-markers
+             (or erc-fill-prefix "")
              (format "%s\n" (error-message-string (cadr status)))))))
     (goto-char (point-min))
     (search-forward "\n\n")
@@ -125,6 +126,7 @@ If several regex match prior occurring have higher priority."
           (goto-char (marker-position marker))
           (let ((pt-before (point)))
             (insert-before-markers
+             (or erc-fill-prefix "")
              (propertize " " 'display im)
              "\n")
             (when (image-multi-frame-p im) (image-animate im 0 t))
