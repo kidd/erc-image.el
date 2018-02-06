@@ -57,7 +57,9 @@
   :group 'erc)
 
 (defcustom erc-image-regex-alist
-  '(("http://\\(www\\.\\)?imgur\\.com" .
+  '(("https?://\\(www\\.\\)?giphy\\.com" .
+     erc-image-get-giphy-url)
+    ("http://\\(www\\.\\)?imgur\\.com" .
      erc-image-get-imgur-url)
     ("\\.\\(png\\|jpg\\|jpeg\\|gif\\|svg\\)$" .
      erc-image-show-url-image))
@@ -187,6 +189,12 @@ If several regex match prior occurring have higher priority."
                 (f (cdr pair)))
             (when (string-match-p re url)
               (throw 'download-url (funcall f url)))))))))
+
+(defun erc-image-get-giphy-url (url)
+  "Return the download URL for the giphy `url'."
+  (let ((id (progn (string-match "\\([0-9a-zA-Z]*\\)$" url)
+                   (match-string 1 url))))
+    (erc-image-show-url-image (format "https://media.giphy.com/media/%s/200w_d.gif" id))))
 
 (defun erc-image-get-imgur-url (url)
   "Return the download URL for the imgur `url'."
