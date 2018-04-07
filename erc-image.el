@@ -59,7 +59,7 @@
 (defcustom erc-image-regex-alist
   '(("https?://\\(www\\.\\)?giphy\\.com" .
      erc-image-get-giphy-url)
-    ("http://\\(www\\.\\)?imgur\\.com" .
+    ("https?://\\(www\\.\\)?imgur\\.com" .
      erc-image-get-imgur-url)
     ("\\.\\(png\\|jpg\\|jpeg\\|gif\\|svg\\)$" .
      erc-image-show-url-image))
