@@ -41,9 +41,9 @@
 ;; `erc-image-display-func'. There are two possible values for that,
 ;; `erc-image-insert-inline' and `erc-image-insert-other-buffer'.
 ;;
-;; Set the value of erc-image-inline-rescale to a number for max size
-;; of images to be displayed (resized if bigger). set the value to
-;; 'window to take window height as this value
+;; Set the value of erc-image-inline-rescale to a number (e.g., 400) or 'window
+;; to resize images whose height or width exceeds the number, or dimensions
+;; exceed the 'window. Requires ImageMagick or Emacs 27.1.
 ;;
 ;;; Code:
 
@@ -149,29 +149,40 @@ If several regex match prior occurring have higher priority."
          (height (- (nth 3 positions) (nth 1 positions)))
          (image (create-image file-name))
          (dimensions (image-size image t)))
-                                        ; See if we want to rescale the image
-    (if (and (fboundp 'imagemagick-types) erc-image-inline-rescale
+
+    ;; See if we want to rescale the image
+    (if (and (or (fboundp 'imagemagick-types) (version<= "27.1" emacs-version))
+             erc-image-inline-rescale
              (not (image-multi-frame-p image)))
         ;; Rescale based on erc-image-rescale
         (cond (;; Numeric: scale down to that size
                (numberp erc-image-inline-rescale)
-               (create-image file-name 'imagemagick nil :height erc-image-inline-rescale))
+               (erc-image--maybe-rescale image file-name
+                                         dimensions
+                                         erc-image-inline-rescale
+                                         erc-image-inline-rescale))
+
               (;; 'window: scale down to window size, if bigger
                (eq erc-image-inline-rescale 'window)
-               ;; But only if the image is greater than the window size
-               (if (or (> (car dimensions) width)
-                       (> (cdr dimensions) height))
-                   ;; Figure out in which direction we need to scale
-                   (if (> width height)
-                       (create-image file-name 'imagemagick nil :height  height)
-                     (create-image file-name 'imagemagick nil :width width))
-                 ;; Image is smaller than window, just give that back
-                 image))
+               (erc-image--maybe-rescale image file-name dimensions height width))
+
               (t (progn (message "Error: none of the rescaling options matched") image)))
       ;; No rescale
       image)))
 
-                                        ;(image-dired-display-image FILE &optional ORIGINAL-SIZE)
+(defun erc-image--maybe-rescale (image file-name dimensions height width)
+"Rescale FILE-NAME to have max DIMENSIONS of HEIGHT or WIDTH, or return IMAGE.
+Helper function for erc-image-create-image."
+  (let ((imagemagick-p (and (fboundp 'imagemagick-types) 'imagemagick)))
+
+    (if (or (> (car dimensions) width)
+            (> (cdr dimensions) height))
+        ;; Figure out in which direction we need to scale
+        (if (> (cdr dimensions) (car dimensions))
+            (create-image file-name imagemagick-p nil :height height)
+          (create-image file-name imagemagick-p nil :width width))
+      ;; Image is smaller than erc-image-inline-rescale, just give that back
+      image)))
 
 (defun erc-image-show-url-image (url)
   (when (and url (display-graphic-p))
